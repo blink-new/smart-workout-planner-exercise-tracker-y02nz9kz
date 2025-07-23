@@ -51,16 +51,35 @@ export default function ExerciseDatabase() {
       console.log('📊 Результат запроса:', result)
 
       if (result && Array.isArray(result)) {
+        // Функция для преобразования старых английских значений в русские
+        const convertWeightType = (oldType: string) => {
+          switch (oldType) {
+            case 'bodyweight': return 'Свой вес'
+            case 'additional': return 'Дополнительный вес'
+            case 'assisted': return 'Антивес'
+            default: return oldType
+          }
+        }
+
+        const convertExerciseType = (oldType: string) => {
+          switch (oldType) {
+            case 'primary': return 'Основное'
+            case 'auxiliary': return 'Вспомогательное'
+            case 'isolation': return 'Изолированное'
+            default: return oldType
+          }
+        }
+
         // Преобразуем результат в правильный формат
         const exercisesList: Exercise[] = result.map((row: any) => ({
           id: row.id?.value || row.id,
           user_id: row.user_id?.value || row.user_id,
           name: row.name?.value || row.name,
           muscle_group: row.muscle_group?.value || row.muscle_group,
-          weight_type: row.weight_type?.value || row.weight_type,
+          weight_type: convertWeightType(row.weight_type?.value || row.weight_type),
           technique: row.technique?.value || row.technique,
           equipment_settings: row.equipment_settings?.value || row.equipment_settings || '',
-          exercise_type: row.exercise_type?.value || row.exercise_type,
+          exercise_type: convertExerciseType(row.exercise_type?.value || row.exercise_type),
           equipment_name: row.equipment_name?.value || row.equipment_name || '',
           equipment_photo_url: row.equipment_photo_url?.value || row.equipment_photo_url || '',
           created_at: row.created_at?.value || row.created_at,
@@ -80,6 +99,25 @@ export default function ExerciseDatabase() {
       setExercises([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Функции для преобразования русских значений в английские для базы данных
+  const convertWeightTypeToDb = (russianType: string) => {
+    switch (russianType) {
+      case 'Свой вес': return 'bodyweight'
+      case 'Дополнительный вес': return 'additional'
+      case 'Антивес': return 'assisted'
+      default: return russianType
+    }
+  }
+
+  const convertExerciseTypeToDb = (russianType: string) => {
+    switch (russianType) {
+      case 'Основное': return 'primary'
+      case 'Вспомогательное': return 'auxiliary'
+      case 'Изолированное': return 'isolation'
+      default: return russianType
     }
   }
 
@@ -112,6 +150,10 @@ export default function ExerciseDatabase() {
       // Генерируем ID для упражнения
       const exerciseId = `exercise_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
+      // Преобразуем русские значения в английские для базы данных
+      const dbWeightType = convertWeightTypeToDb(formData.weight_type)
+      const dbExerciseType = convertExerciseTypeToDb(formData.exercise_type)
+
       // Создаем SQL запрос для добавления упражнения
       const query = `
         INSERT INTO exercises (
@@ -124,10 +166,10 @@ export default function ExerciseDatabase() {
           '${user.id}',
           '${formData.name.replace(/'/g, "''")}',
           '${formData.muscle_group}',
-          '${formData.weight_type}',
+          '${dbWeightType}',
           '${formData.technique.replace(/'/g, "''")}',
           '${formData.equipment_settings.replace(/'/g, "''")}',
-          '${formData.exercise_type}',
+          '${dbExerciseType}',
           '${formData.equipment_name.replace(/'/g, "''")}',
           '${formData.equipment_photo_url}',
           ${formData.default_sets},
@@ -191,15 +233,19 @@ export default function ExerciseDatabase() {
         return
       }
 
+      // Преобразуем русские значения в английские для базы данных
+      const dbWeightType = convertWeightTypeToDb(formData.weight_type)
+      const dbExerciseType = convertExerciseTypeToDb(formData.exercise_type)
+
       // Создаем SQL запрос для обновления упражнения
       const query = `
         UPDATE exercises SET
           name = '${formData.name.replace(/'/g, "''")}',
           muscle_group = '${formData.muscle_group}',
-          weight_type = '${formData.weight_type}',
+          weight_type = '${dbWeightType}',
           technique = '${formData.technique.replace(/'/g, "''")}',
           equipment_settings = '${formData.equipment_settings.replace(/'/g, "''")}',
-          exercise_type = '${formData.exercise_type}',
+          exercise_type = '${dbExerciseType}',
           equipment_name = '${formData.equipment_name.replace(/'/g, "''")}',
           equipment_photo_url = '${formData.equipment_photo_url}',
           default_sets = ${formData.default_sets},
